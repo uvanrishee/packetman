@@ -45,3 +45,13 @@ htmlcov/
 temp_*/
 .DS_Store
 Thumbs.db
+
+# Project specification & local scratchpad
+details.md
+missing_features.md
+architecture.md
+CHANGELOG.md
+current_state.md
+implementation_plan.md
+
+

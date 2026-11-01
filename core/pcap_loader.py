@@ -156,6 +156,72 @@ def validate_capture_bytes(
     )
 
 
+def validate_capture_file(
+    file_path: str,
+    config: AppConfig = DEFAULT_CONFIG
+) -> ValidationResult:
+    """
+    Validates a packet capture file on disk prior to invoking TShark or PyShark.
+    Performs safe existence, file size, extension, and magic-byte checks (§13).
+    """
+    path = Path(file_path)
+    if not path.is_file():
+        return ValidationResult(
+            is_valid=False,
+            error_message=f"Capture file does not exist or is not a regular file: {file_path}"
+        )
+
+    size = path.stat().st_size
+    if size == 0:
+        return ValidationResult(
+            is_valid=False,
+            error_message="Capture file is empty (0 bytes).",
+            file_size_bytes=0
+        )
+
+    if size > config.max_upload_size_bytes:
+        max_mb = config.max_upload_size_bytes / (1024 * 1024)
+        actual_mb = size / (1024 * 1024)
+        return ValidationResult(
+            is_valid=False,
+            error_message=f"File exceeds maximum size limit of {max_mb:.1f} MB (size: {actual_mb:.1f} MB).",
+            file_size_bytes=size
+        )
+
+    ext = path.suffix.lower()
+    if ext not in config.supported_extensions:
+        return ValidationResult(
+            is_valid=False,
+            error_message=f"Unsupported file extension '{ext}'. Only .pcap and .pcapng are supported.",
+            file_size_bytes=size
+        )
+
+    try:
+        with open(file_path, "rb") as f:
+            header_bytes = f.read(4)
+    except Exception as exc:
+        return ValidationResult(
+            is_valid=False,
+            error_message=f"Could not read capture header: {exc}",
+            file_size_bytes=size
+        )
+
+    fmt = detect_capture_format(header_bytes)
+    if not fmt:
+        return ValidationResult(
+            is_valid=False,
+            error_message="Invalid capture header: file does not match PCAP or PCAPNG signature.",
+            file_size_bytes=size
+        )
+
+    return ValidationResult(
+        is_valid=True,
+        file_size_bytes=size,
+        file_type=fmt
+    )
+
+
+
 def save_upload_to_temp(
     file_stream: BinaryIO | bytes,
     extension: str = ".pcap",

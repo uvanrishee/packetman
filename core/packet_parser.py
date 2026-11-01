@@ -331,7 +331,12 @@ def parse_pcap_file(
     except Exception:
         pass
 
-    from core.pcap_loader import resolve_tshark_path
+    from core.pcap_loader import resolve_tshark_path, validate_capture_file
+    val = validate_capture_file(file_path, config)
+    if not val.is_valid:
+        logger.warning("Capture validation failed for %s: %s", file_path, val.error_message)
+        return []
+
     tshark_exec = resolve_tshark_path(config.tshark_path) or config.tshark_path
     records: list[PacketRecord] = []
     packet_idx = 1
@@ -348,26 +353,34 @@ def parse_pcap_file(
             include_raw=False
         )
 
-        for raw_packet in capture:
-            if packet_idx > config.max_packets_limit:
-                logger.warning("Reached maximum packet budget limit (%d). Stopping parse.", config.max_packets_limit)
-                break
+        try:
+            for raw_packet in capture:
+                if packet_idx > config.max_packets_limit:
+                    logger.warning("Reached maximum packet budget limit (%d). Stopping parse.", config.max_packets_limit)
+                    break
 
-            try:
-                rec = _normalise_pyshark_packet(raw_packet, packet_idx)
-                records.append(rec)
-            except Exception as exc:
-                logger.warning("Failed to parse packet #%d: %s", packet_idx, exc)
+                try:
+                    rec = _normalise_pyshark_packet(raw_packet, packet_idx)
+                    records.append(rec)
+                except Exception as exc:
+                    logger.warning("Failed to parse packet #%d: %s", packet_idx, exc)
 
-            if progress_callback and packet_idx % 100 == 0:
-                progress_callback(packet_idx, f"Parsed {packet_idx} packets...")
+                if progress_callback and packet_idx % 100 == 0:
+                    progress_callback(packet_idx, f"Parsed {packet_idx} packets...")
 
-            packet_idx += 1
+                packet_idx += 1
+        except Exception as exc:
+            logger.warning("Streaming capture parse stopped early due to truncated or malformed packet: %s", exc)
+
 
     finally:
         if capture is not None:
             try:
                 capture.close()
+            except Exception:
+                pass
+            try:
+                capture._running_processes.clear()
             except Exception:
                 pass
 

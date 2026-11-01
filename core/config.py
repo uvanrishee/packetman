@@ -30,6 +30,7 @@ class AppConfig:
 
     # TCP Detection Thresholds
     tcp_handshake_timeout_seconds: float = 3.0     # Time to wait for SYN-ACK and final ACK
+    tcp_handshake_slow_threshold_seconds: float = 0.5  # 500ms indicates slow SYN-to-SYN-ACK handshake delay
     tcp_rst_burst_threshold: int = 3               # Resets in a flow/endpoint to consider a burst
     tcp_rst_burst_window_seconds: float = 5.0      # Window to count RST burst
     tcp_retransmission_min_ratio: float = 0.05     # 5% retransmission ratio in flow to flag

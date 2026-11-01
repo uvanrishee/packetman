@@ -224,3 +224,56 @@ def test_tcp_retransmission_detector():
     f = retx_findings[0]
     assert f.metrics["retransmission_events"] >= 3
     assert len(f.evidence_packets) >= 3
+
+
+def test_tcp_handshake_delay_detector():
+    # Scenario A: Handshake with 1.2s delay (exceeds 0.5s threshold)
+    p1 = PacketRecord(
+        packet_number=1, timestamp=100.0, timestamp_iso="", captured_length=64, reported_length=64,
+        highest_layer="TCP", protocol_stack=("TCP",), src_ip="10.10.10.5", dst_ip="10.10.10.80",
+        src_port=45000, dst_port=80, transport_protocol="TCP", tcp_flags={"SYN": True, "ACK": False},
+        tcp_seq=1000
+    )
+    p2 = PacketRecord(
+        packet_number=2, timestamp=101.2, timestamp_iso="", captured_length=64, reported_length=64,
+        highest_layer="TCP", protocol_stack=("TCP",), src_ip="10.10.10.80", dst_ip="10.10.10.5",
+        src_port=80, dst_port=45000, transport_protocol="TCP", tcp_flags={"SYN": True, "ACK": True},
+        tcp_seq=5000, tcp_ack=1001
+    )
+    p3 = PacketRecord(
+        packet_number=3, timestamp=101.25, timestamp_iso="", captured_length=64, reported_length=64,
+        highest_layer="TCP", protocol_stack=("TCP",), src_ip="10.10.10.5", dst_ip="10.10.10.80",
+        src_port=45000, dst_port=80, transport_protocol="TCP", tcp_flags={"ACK": True},
+        tcp_seq=1001, tcp_ack=5001
+    )
+
+    # Scenario B: Fast handshake with 0.05s delay (normal, should NOT trigger delay finding)
+    p4 = PacketRecord(
+        packet_number=4, timestamp=105.0, timestamp_iso="", captured_length=64, reported_length=64,
+        highest_layer="TCP", protocol_stack=("TCP",), src_ip="10.10.10.5", dst_ip="10.10.10.99",
+        src_port=45002, dst_port=443, transport_protocol="TCP", tcp_flags={"SYN": True, "ACK": False},
+        tcp_seq=2000
+    )
+    p5 = PacketRecord(
+        packet_number=5, timestamp=105.05, timestamp_iso="", captured_length=64, reported_length=64,
+        highest_layer="TCP", protocol_stack=("TCP",), src_ip="10.10.10.99", dst_ip="10.10.10.5",
+        src_port=443, dst_port=45002, transport_protocol="TCP", tcp_flags={"SYN": True, "ACK": True},
+        tcp_seq=6000, tcp_ack=2001
+    )
+
+    pkts = [p1, p2, p3, p4, p5]
+    flows = build_flows(pkts)
+    hosts = build_host_profiles(pkts, flows)
+    detector = TCPFaultDetector()
+    findings = detector.analyze(pkts, flows, hosts)
+
+    lat_findings = [f for f in findings if f.type == "TCP_HANDSHAKE_DELAY"]
+    assert len(lat_findings) == 1
+    f = lat_findings[0]
+    assert f.source_ip == "10.10.10.5"
+    assert f.destination_ip == "10.10.10.80"
+    assert f.destination_port == 80
+    assert f.metrics["max_syn_ack_delay_ms"] == 1200.0
+    assert 1 in f.evidence_packets
+    assert 2 in f.evidence_packets
+

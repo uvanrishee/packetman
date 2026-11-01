@@ -108,3 +108,63 @@ def test_pipeline_tcp_retransmission():
     retx_findings = [f for f in res.findings if f.type == "TCP_RETRANSMISSION"]
     assert len(retx_findings) >= 1
     assert len(retx_findings[0].evidence_packets) >= 3
+
+
+@pytest.mark.integration
+def test_pipeline_mtu_icmp_clue():
+    pcap_path = os.path.join("sample_pcaps", "mtu_icmp_clue.pcap")
+    assert os.path.exists(pcap_path)
+
+    res = run_pipeline(pcap_path)
+    assert res.total_packets_read > 0
+    mtu_findings = [f for f in res.findings if f.type == "MTU_FRAGMENTATION_NEEDED"]
+    assert len(mtu_findings) >= 1
+    f = mtu_findings[0]
+    assert f.metrics["advertised_next_hop_mtu"] == 1420
+    assert len(f.evidence_packets) > 0
+
+
+@pytest.mark.integration
+def test_pipeline_tcp_handshake_delay():
+    pcap_path = os.path.join("sample_pcaps", "tcp_handshake_delay.pcap")
+    assert os.path.exists(pcap_path)
+
+    res = run_pipeline(pcap_path)
+    assert res.total_packets_read >= 2
+    delay_findings = [f for f in res.findings if f.type == "TCP_HANDSHAKE_DELAY"]
+    assert len(delay_findings) >= 1
+    f = delay_findings[0]
+    assert f.metrics["max_syn_ack_delay_ms"] >= 1000.0
+
+
+@pytest.mark.integration
+def test_pipeline_empty_capture():
+    pcap_path = os.path.join("sample_pcaps", "empty.pcap")
+    assert os.path.exists(pcap_path)
+
+    res = run_pipeline(pcap_path)
+    assert res.total_packets_read == 0
+    assert len(res.packets) == 0
+    assert len(res.warnings) >= 1
+
+
+@pytest.mark.integration
+def test_pipeline_malformed_capture():
+    pcap_path = os.path.join("sample_pcaps", "malformed.pcap")
+    assert os.path.exists(pcap_path)
+
+    res = run_pipeline(pcap_path)
+    # Must not crash, should return a valid AnalysisResult object
+    assert isinstance(res.total_packets_read, int)
+    assert isinstance(res.packets, list)
+
+
+@pytest.mark.integration
+def test_pipeline_max_packets_budget_limit():
+    pcap_path = os.path.join("sample_pcaps", "port_scan_recon.pcap")
+    assert os.path.exists(pcap_path)
+
+    custom_cfg = AppConfig(max_packets_limit=5)
+    res = run_pipeline(pcap_path, config=custom_cfg)
+    assert res.total_packets_read <= 6
+

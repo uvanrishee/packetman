@@ -8,6 +8,7 @@ TCP Fault Detectors:
 from __future__ import annotations
 
 import logging
+import statistics
 from collections import defaultdict
 from typing import Mapping, Sequence
 
@@ -43,6 +44,9 @@ class TCPFaultDetector(BaseDetector):
 
         # 3. Incomplete Handshakes
         findings.extend(self._detect_incomplete_handshakes(packets, flows))
+
+        # 4. TCP Handshake Latency / Unusual Delay
+        findings.extend(self._detect_handshake_latency(packets, flows))
 
         return findings
 
@@ -294,5 +298,130 @@ class TCPFaultDetector(BaseDetector):
                         "The capture vantage point may not see reverse traffic if asymmetric routing is active on the network."
                     ]
                 ))
+
+        return findings
+
+    def _detect_handshake_latency(
+        self,
+        packets: Sequence[PacketRecord],
+        flows: Mapping[str, FlowRecord]
+    ) -> list[Finding]:
+        """
+        Measures TCP SYN-to-SYN-ACK duration and flags connections where handshake latency
+        exceeds the configured threshold (§20.7 Unusual Delay).
+        """
+        findings: list[Finding] = []
+        slow_threshold = self.config.tcp_handshake_slow_threshold_seconds
+
+        # Map handshake attempts: (src_ip, src_port, dst_ip, dst_port) -> list of candidate SYNs
+        active_syns: dict[tuple[str, int, str, int], list[PacketRecord]] = defaultdict(list)
+        # Store measured slow handshakes grouped by: (src_ip, dst_ip, dst_port)
+        slow_handshakes_by_target: dict[tuple[str, str, int], list[dict]] = defaultdict(list)
+
+        for pkt in packets:
+            if pkt.transport_protocol != "TCP" or not pkt.src_ip or not pkt.dst_ip or not pkt.src_port or not pkt.dst_port:
+                continue
+
+            flags = pkt.tcp_flags or {}
+            is_syn = flags.get("SYN", False)
+            is_ack = flags.get("ACK", False)
+            is_rst = flags.get("RST", False)
+
+            if is_syn and not is_ack and not is_rst:
+                key = (pkt.src_ip, pkt.src_port, pkt.dst_ip, pkt.dst_port)
+                active_syns[key].append(pkt)
+
+            elif is_syn and is_ack and not is_rst:
+                # SYN-ACK response: dst_ip:dst_port -> src_ip:src_port
+                rev_key = (pkt.dst_ip, pkt.dst_port, pkt.src_ip, pkt.src_port)
+                syn_list = active_syns.get(rev_key, [])
+                if syn_list:
+                    # Match with most recent SYN prior to this SYN-ACK
+                    matching_syn = None
+                    for s in reversed(syn_list):
+                        if s.timestamp <= pkt.timestamp:
+                            if pkt.tcp_ack is not None and s.tcp_seq is not None:
+                                if pkt.tcp_ack == s.tcp_seq + 1:
+                                    matching_syn = s
+                                    break
+                            else:
+                                matching_syn = s
+                                break
+
+                    if matching_syn:
+                        syn_ack_delay = pkt.timestamp - matching_syn.timestamp
+                        if syn_ack_delay >= slow_threshold:
+                            target_key = (matching_syn.src_ip, matching_syn.dst_ip, matching_syn.dst_port)
+                            slow_handshakes_by_target[target_key].append({
+                                "syn": matching_syn,
+                                "syn_ack": pkt,
+                                "syn_ack_delay": syn_ack_delay,
+                                "src_port": matching_syn.src_port,
+                            })
+
+        finding_counter = 1
+        for (src_ip, dst_ip, dst_port), hs_list in slow_handshakes_by_target.items():
+            delays_ms = [hs["syn_ack_delay"] * 1000.0 for hs in hs_list]
+            count = len(delays_ms)
+            median_ms = statistics.median(delays_ms)
+            max_ms = max(delays_ms)
+            min_ms = min(delays_ms)
+
+            evidence = []
+            for hs in hs_list[:5]:
+                evidence.append(hs["syn"].packet_number)
+                evidence.append(hs["syn_ack"].packet_number)
+
+            f_id = f"F-TCP-LAT-{finding_counter:03d}"
+            finding_counter += 1
+
+            severity = "HIGH" if max_ms >= 2000.0 else ("MEDIUM" if max_ms >= 1000.0 else "LOW")
+
+            findings.append(Finding(
+                finding_id=f_id,
+                category="NETWORK_FAULT",
+                type="TCP_HANDSHAKE_DELAY",
+                title=f"Unusual TCP Handshake Delay ({src_ip} -> {dst_ip}:{dst_port})",
+                classification="OBSERVATION",
+                severity=severity,
+                confidence=0.90,
+                source_ip=src_ip,
+                destination_ip=dst_ip,
+                source_port=hs_list[0]["src_port"],
+                destination_port=dst_port,
+                affected_hosts=[src_ip, dst_ip],
+                flow_ids=[],
+                start_time=hs_list[0]["syn"].timestamp,
+                end_time=hs_list[-1]["syn_ack"].timestamp,
+                metrics={
+                    "slow_handshake_count": count,
+                    "median_syn_ack_delay_ms": round(median_ms, 2),
+                    "max_syn_ack_delay_ms": round(max_ms, 2),
+                    "min_syn_ack_delay_ms": round(min_ms, 2),
+                    "threshold_ms": round(slow_threshold * 1000.0, 2),
+                },
+                evidence_packets=evidence,
+                reason=(
+                    f"Measured TCP SYN-to-SYN-ACK handshake delay of {median_ms:.1f}ms (median) / "
+                    f"{max_ms:.1f}ms (max), exceeding the threshold of {slow_threshold * 1000.0:.0f}ms "
+                    f"across {count} observed handshake(s)."
+                ),
+                likely_cause=(
+                    "Server-side connection backlog/listen queue saturation (SYN queue delay), "
+                    "high propagation latency across network path (e.g., WAN/satellite links), or intermediate proxy/stateful firewall inspection delay."
+                ),
+                alternative_explanations=[
+                    "High round-trip time (RTT) due to geographical distance between client and server",
+                    "Network queueing delay or bufferbloat on congested WAN links",
+                    "Capture vantage point located near the client while server is remote"
+                ],
+                recommendation=(
+                    "Check network path RTT (ping/traceroute) to distinguish network latency from server response delay. "
+                    "If ICMP RTT is low but TCP SYN-ACK delay is high, investigate server TCP backlog queue and CPU utilization."
+                ),
+                limitations=[
+                    "SYN-to-SYN-ACK timing reflects total path RTT plus server SYN processing time; single-vantage point capture cannot separate network transit time from host kernel scheduling time."
+                ]
+            ))
 
         return findings

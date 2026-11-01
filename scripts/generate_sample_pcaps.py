@@ -17,7 +17,7 @@ def generate_all_samples(output_dir: str = "sample_pcaps") -> dict[str, str]:
     Generates all test PCAP scenarios into the output directory.
     """
     from scapy.all import (
-        Ether, IP, TCP, UDP, DNS, DNSQR, DNSRR, ARP, BOOTP, DHCP, wrpcap
+        Ether, IP, TCP, UDP, DNS, DNSQR, DNSRR, ARP, BOOTP, DHCP, ICMP, wrpcap
     )
 
     os.makedirs(output_dir, exist_ok=True)
@@ -241,6 +241,82 @@ def generate_all_samples(output_dir: str = "sample_pcaps") -> dict[str, str]:
     path = os.path.join(output_dir, "dhcp_multi_server.pcap")
     wrpcap(path, pkts)
     generated_files["dhcp_multi_server"] = path
+
+    # =========================================================================
+    # 9. MTU & ICMP Clues Scenario (Path MTU bottleneck, ICMP Fragmentation Needed)
+    # =========================================================================
+    pkts = []
+    # Client sends large payload (1500 bytes) with Don't Fragment (DF) flag set
+    client_ip = "192.168.1.100"
+    target_ip = "10.0.0.1"
+    gateway_ip = "192.168.1.1"
+
+    pkts.append(
+        Ether() /
+        IP(src=client_ip, dst=target_ip, flags="DF") /
+        TCP(sport=51234, dport=80, flags="PA", seq=1000, ack=5000) /
+        (b"M" * 1460)
+    )
+
+    # Intermediate gateway responds with ICMP Type 3 Code 4 (Fragmentation Needed, next-hop MTU 1420)
+    pkts.append(
+        Ether() /
+        IP(src=gateway_ip, dst=client_ip) /
+        ICMP(type=3, code=4, nexthopmtu=1420) /
+        IP(src=client_ip, dst=target_ip, flags="DF") /
+        TCP(sport=51234, dport=80, flags="PA", seq=1000)
+    )
+
+    for i, p in enumerate(pkts):
+        p.time = base_time + (i * 0.05)
+
+    path = os.path.join(output_dir, "mtu_icmp_clue.pcap")
+    wrpcap(path, pkts)
+    generated_files["mtu_icmp_clue"] = path
+
+    # =========================================================================
+    # 10. TCP Handshake Delay Scenario (SYN -> SYN-ACK takes 1.25s)
+    # =========================================================================
+    pkts = []
+    hsk_client = "192.168.10.5"
+    hsk_server = "192.168.10.80"
+
+    # SYN at t=0.0
+    p_syn = Ether() / IP(src=hsk_client, dst=hsk_server) / TCP(sport=45000, dport=80, flags="S", seq=1000)
+    p_syn.time = base_time
+    pkts.append(p_syn)
+
+    # SYN-ACK at t=1.25s (1250ms latency)
+    p_synack = Ether() / IP(src=hsk_server, dst=hsk_client) / TCP(sport=80, dport=45000, flags="SA", seq=5000, ack=1001)
+    p_synack.time = base_time + 1.25
+    pkts.append(p_synack)
+
+    # ACK at t=1.28s
+    p_ack = Ether() / IP(src=hsk_client, dst=hsk_server) / TCP(sport=45000, dport=80, flags="A", seq=1001, ack=5001)
+    p_ack.time = base_time + 1.28
+    pkts.append(p_ack)
+
+    path = os.path.join(output_dir, "tcp_handshake_delay.pcap")
+    wrpcap(path, pkts)
+    generated_files["tcp_handshake_delay"] = path
+
+    # =========================================================================
+    # 11. Empty PCAP (Valid 24-byte pcap global header, 0 packets)
+    # =========================================================================
+    empty_pcap_header = b"\xd4\xc3\xb2\xa1\x02\x00\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x01\x00\x00\x00"
+    empty_path = os.path.join(output_dir, "empty.pcap")
+    with open(empty_path, "wb") as f:
+        f.write(empty_pcap_header)
+    generated_files["empty"] = empty_path
+
+    # =========================================================================
+    # 12. Malformed / Truncated PCAP (Valid header + corrupted partial frame)
+    # =========================================================================
+    malformed_path = os.path.join(output_dir, "malformed.pcap")
+    with open(malformed_path, "wb") as f:
+        # Global header + corrupted packet header with invalid packet length
+        f.write(empty_pcap_header + b"\x5a\x6b\x7c\x8d\x00\x00\x00\x00\xff\xff\x00\x00\x10\x00\x00\x00\xaa\xbb")
+    generated_files["malformed"] = malformed_path
 
     print(f"Successfully generated {len(generated_files)} sample PCAPs in '{output_dir}'.")
     return generated_files

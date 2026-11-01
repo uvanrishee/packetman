@@ -6,9 +6,10 @@ Main Streamlit application entry point using modern st.navigation.
 import streamlit as st
 
 from core.pcap_loader import check_tshark_available
-from dashboard.faults_threats import render_faults_threats_page
+from dashboard.network_faults import render_network_faults_page
 from dashboard.overview import render_overview_page
 from dashboard.packet_explorer import render_packet_explorer_page
+from dashboard.security_threats import render_security_threats_page
 from dashboard.session import init_session
 from dashboard.timeline import render_timeline_page
 from dashboard.topology_reports import render_topology_reports_page
@@ -38,10 +39,16 @@ p_timeline = st.Page(
     url_path="timeline"
 )
 p_faults = st.Page(
-    render_faults_threats_page,
-    title="Faults & Threats",
+    render_network_faults_page,
+    title="Network Faults",
+    icon="🔴",
+    url_path="network-faults"
+)
+p_threats = st.Page(
+    render_security_threats_page,
+    title="Security Threats",
     icon="⚠️",
-    url_path="faults"
+    url_path="security-threats"
 )
 p_packets = st.Page(
     render_packet_explorer_page,
@@ -56,7 +63,7 @@ p_topology = st.Page(
 
 # Modern Multipage Navigation
 pg = st.navigation({
-    "Diagnosis & Intelligence": [p_overview, p_timeline, p_faults],
+    "Diagnosis & Intelligence": [p_overview, p_timeline, p_faults, p_threats],
     "Deep Inspection & Evidence": [p_packets, p_topology]
 })
 

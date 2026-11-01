@@ -34,7 +34,7 @@ def resolve_tshark_path(configured_path: str | None = None) -> str | None:
     Dynamically discovers the TShark binary path across common locations.
     Checks:
     1. Explicitly configured path (if exists)
-    2. PACKETMAN_TSHARK_PATH (or NETSLEUTH_TSHARK_PATH) environment variable
+    2. PACKETMAN_TSHARK_PATH environment variable
     3. System PATH via shutil.which
     4. Common Windows directories (Program Files, Program Files (x86), LocalAppData, Scoop)
     5. Standard Linux/macOS paths
@@ -42,7 +42,7 @@ def resolve_tshark_path(configured_path: str | None = None) -> str | None:
     candidates: list[str] = []
     if configured_path:
         candidates.append(configured_path)
-    env_path = os.environ.get("PACKETMAN_TSHARK_PATH") or os.environ.get("NETSLEUTH_TSHARK_PATH")
+    env_path = os.environ.get("PACKETMAN_TSHARK_PATH")
     if env_path:
         candidates.append(env_path)
     which_path = shutil.which("tshark")

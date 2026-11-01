@@ -19,10 +19,7 @@ class AppConfig:
     tshark_path: str = field(
         default_factory=lambda: os.environ.get(
             "PACKETMAN_TSHARK_PATH",
-            os.environ.get(
-                "NETSLEUTH_TSHARK_PATH",
-                r"C:\Program Files\Wireshark\tshark.exe" if os.name == "nt" else "tshark"
-            )
+            r"C:\Program Files\Wireshark\tshark.exe" if os.name == "nt" else "tshark"
         )
     )
 

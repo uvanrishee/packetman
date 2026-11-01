@@ -1,5 +1,7 @@
 # PacketMan — Network Diagnosis & Incident Intelligence
 
+url:packetman.streamlit.app
+
 > **Transforming raw packet captures into explainable, evidence-backed network incident intelligence.**  
 > Built for the **24-Hour Cybersecurity Hackathon | IIITDM Kancheepuram**.
 

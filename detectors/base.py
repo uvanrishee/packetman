@@ -1,5 +1,5 @@
 """
-Base detector interface for NetSleuth.
+Base detector interface for PacketMan.
 All detectors must inherit or follow this contract and return list[Finding].
 """
 
@@ -14,7 +14,7 @@ from core.models import Finding, FlowRecord, HostProfile, PacketRecord
 
 class BaseDetector(ABC):
     """
-    Abstract Base Class for all NetSleuth detectors.
+    Abstract Base Class for all PacketMan detectors.
     Detectors MUST NOT depend on Streamlit or presentation logic.
     """
 

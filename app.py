@@ -1,5 +1,5 @@
 """
-NetSleuth — Network Diagnosis & Incident Intelligence.
+PacketMan — Network Diagnosis & Incident Intelligence.
 Main Streamlit application entry point using modern st.navigation.
 """
 
@@ -14,7 +14,7 @@ from dashboard.timeline import render_timeline_page
 from dashboard.topology_reports import render_topology_reports_page
 
 st.set_page_config(
-    page_title="NetSleuth — Network Diagnosis",
+    page_title="PacketMan — Network Diagnosis",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -61,7 +61,7 @@ pg = st.navigation({
 })
 
 # Sidebar Info
-st.sidebar.markdown("### **NetSleuth**")
+st.sidebar.markdown("### **PacketMan**")
 st.sidebar.caption("v1.0 • Network Diagnosis & Intelligence")
 
 if tshark_ok:

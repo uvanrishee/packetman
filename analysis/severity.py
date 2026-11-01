@@ -1,5 +1,5 @@
 """
-Severity calculation engine for NetSleuth.
+Severity calculation engine for PacketMan.
 Estimates potential operational or security impact using explicit, transparent rules.
 Severity is strictly separated from evidence confidence.
 """

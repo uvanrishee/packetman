@@ -1,5 +1,5 @@
 """
-Configuration settings and detection thresholds for NetSleuth.
+Configuration settings and detection thresholds for PacketMan.
 All thresholds are centralized and documented here.
 """
 
@@ -18,8 +18,11 @@ class AppConfig:
     # Environment & Paths
     tshark_path: str = field(
         default_factory=lambda: os.environ.get(
-            "NETSLEUTH_TSHARK_PATH",
-            r"C:\Program Files\Wireshark\tshark.exe" if os.name == "nt" else "tshark"
+            "PACKETMAN_TSHARK_PATH",
+            os.environ.get(
+                "NETSLEUTH_TSHARK_PATH",
+                r"C:\Program Files\Wireshark\tshark.exe" if os.name == "nt" else "tshark"
+            )
         )
     )
 

@@ -34,7 +34,7 @@ def resolve_tshark_path(configured_path: str | None = None) -> str | None:
     Dynamically discovers the TShark binary path across common locations.
     Checks:
     1. Explicitly configured path (if exists)
-    2. NETSLEUTH_TSHARK_PATH environment variable
+    2. PACKETMAN_TSHARK_PATH (or NETSLEUTH_TSHARK_PATH) environment variable
     3. System PATH via shutil.which
     4. Common Windows directories (Program Files, Program Files (x86), LocalAppData, Scoop)
     5. Standard Linux/macOS paths
@@ -42,7 +42,7 @@ def resolve_tshark_path(configured_path: str | None = None) -> str | None:
     candidates: list[str] = []
     if configured_path:
         candidates.append(configured_path)
-    env_path = os.environ.get("NETSLEUTH_TSHARK_PATH")
+    env_path = os.environ.get("PACKETMAN_TSHARK_PATH") or os.environ.get("NETSLEUTH_TSHARK_PATH")
     if env_path:
         candidates.append(env_path)
     which_path = shutil.which("tshark")
@@ -77,7 +77,7 @@ def check_tshark_available(config: AppConfig = DEFAULT_CONFIG) -> tuple[bool, st
     """
     tshark_exec = resolve_tshark_path(config.tshark_path)
     if not tshark_exec:
-        return False, "TShark binary not found. Please install Wireshark or set NETSLEUTH_TSHARK_PATH."
+        return False, "TShark binary not found. Please install Wireshark or set PACKETMAN_TSHARK_PATH."
 
     try:
         proc = subprocess.run(
@@ -165,7 +165,7 @@ def save_upload_to_temp(
     Saves uploaded stream into a uniquely named temporary file.
     Guarantees that untrusted filenames are never used directly as filesystem paths.
     """
-    unique_name = f"netsleuth_{uuid.uuid4().hex[:12]}{extension}"
+    unique_name = f"packetman_{uuid.uuid4().hex[:12]}{extension}"
     target_dir = temp_dir or tempfile.gettempdir()
     os.makedirs(target_dir, exist_ok=True)
     temp_path = os.path.join(target_dir, unique_name)

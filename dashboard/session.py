@@ -1,5 +1,5 @@
 """
-Streamlit session state management for NetSleuth.
+Streamlit session state management for PacketMan.
 Ensures session isolation and preserves analysis state across navigation transitions.
 """
 

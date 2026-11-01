@@ -94,7 +94,7 @@ class DHCPAnalysisDetector(BaseDetector):
                 ],
                 recommendation="Inspect switch ports delivering DHCP offers using DHCP Snooping; confirm MAC addresses of both servers against network inventory.",
                 limitations=[
-                    "NetSleuth observes multiple DHCP server offers but cannot determine which server is authorized without a predefined network allowlist."
+                    "PacketMan observes multiple DHCP server offers but cannot determine which server is authorized without a predefined network allowlist."
                 ]
             ))
 

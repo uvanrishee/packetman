@@ -1,4 +1,4 @@
-# NetSleuth — Network Diagnosis & Incident Intelligence
+# PacketMan — Network Diagnosis & Incident Intelligence
 
 > **Transforming raw packet captures into explainable, evidence-backed network incident intelligence.**  
 > Built for the **24-Hour Cybersecurity Hackathon | IIITDM Kancheepuram**.
@@ -11,7 +11,7 @@ Small offices, university campus labs, and departmental networks rely on their c
 
 This process is error-prone, demands deep protocol knowledge, and makes it virtually impossible for beginners to distinguish a benign operational fault (e.g. buffer congestion or router failover) from an active attack hiding in the same traffic (e.g. ARP cache poisoning or port reconnaissance).
 
-**NetSleuth** automates the entire network investigation chain:
+**PacketMan** automates the entire network investigation chain:
 $$\text{PCAP Upload} \longrightarrow \text{TShark Decoding} \longrightarrow \text{Field Normalisation} \longrightarrow \text{Flow Tracking} \longrightarrow \text{10 Original Detectors} \longrightarrow \text{Incident Correlation} \longrightarrow \text{Interactive Dashboard}$$
 
 Every conclusion is tied to **exact packet indices and timestamps**—delivering plain-language explanations, benign alternatives, and actionable remediation steps without fabricated certainty.
@@ -20,7 +20,7 @@ Every conclusion is tied to **exact packet indices and timestamps**—delivering
 
 ## 2. Key Architecture & Differentiators
 
-NetSleuth is designed with clean architectural boundaries. UI code never contains detection heuristics, and detection modules are 100% decoupled from Streamlit.
+PacketMan is designed with clean architectural boundaries. UI code never contains detection heuristics, and detection modules are 100% decoupled from Streamlit.
 
 ```text
 ┌────────────────────────────────────────────────────────┐
@@ -62,7 +62,7 @@ NetSleuth is designed with clean architectural boundaries. UI code never contain
 
 In strict compliance with hackathon originality rules, **PyShark/TShark is utilized strictly as a decoder interface**. All feature extraction, sequence tracking, aggregation, detection, and correlation logic was written from scratch:
 
-| Detector | Category | What NetSleuth Analyzes | Cautious Language Standard |
+| Detector | Category | What PacketMan Analyzes | Cautious Language Standard |
 |---|---|---|---|
 | **TCP Retransmissions** | `NETWORK_FAULT` | Byte sequence range overlaps in same stream and direction | Reports measurable retransmission ratio; caveats capture offload artifacts. |
 | **TCP Resets** | `NETWORK_FAULT` | Connection reset context, sender direction, and burst rates | Acknowledges resets as normal protocol signals, not immediate proof of attack. |
@@ -79,7 +79,7 @@ In strict compliance with hackathon originality rules, **PyShark/TShark is utili
 
 ## 4. Multi-Signal Incident Correlation
 
-Instead of inundating operators with isolated alerts, NetSleuth's **Incident Correlation Engine** clusters related observations using explainable heuristics:
+Instead of inundating operators with isolated alerts, PacketMan's **Incident Correlation Engine** clusters related observations using explainable heuristics:
 1. **DNS Degradation Preceding Connection Failures:** Links client DNS lookup timeouts to subsequent connection resets or aborted handshakes.
 2. **Reconnaissance with Target Rejection:** Links vertical/horizontal port scans with corresponding closed-port TCP RST replies.
 3. **ARP Conflicts & Disruption:** Links competing MAC assertions with transport-layer stalls.
@@ -89,7 +89,7 @@ Instead of inundating operators with isolated alerts, NetSleuth's **Incident Cor
 ## 5. Quickstart & Local Setup
 
 ### Prerequisites
-- Python 3.10+ (tested on Python 3.14)
+- Python 3.10+ (tested on Python 3.13 / 3.14)
 - **Wireshark / TShark** installed:
   - **Windows:** Default installer installs TShark at `C:\Program Files\Wireshark\tshark.exe` (automatically detected).
   - **Linux / Ubuntu:** `sudo apt-get update && sudo apt-get install -y tshark`
@@ -97,8 +97,8 @@ Instead of inundating operators with isolated alerts, NetSleuth's **Incident Cor
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/<your-username>/netsleuth.git
-cd netsleuth
+git clone https://github.com/uvanrishee/packetman.git
+cd packetman
 ```
 
 ### 2. Install Python dependencies
@@ -106,7 +106,7 @@ cd netsleuth
 pip install -r requirements.txt
 ```
 
-### 3. Launch NetSleuth
+### 3. Launch PacketMan
 ```bash
 streamlit run app.py
 ```
@@ -116,7 +116,7 @@ Open your browser at `http://localhost:8501`.
 
 ## 6. Pre-Packaged Sample Captures (For Judges & Demos)
 
-NetSleuth includes controlled, reproducible `.pcap` files in `sample_pcaps/`. Judges can immediately evaluate the tool by selecting any scenario from the dropdown on the **Overview** page:
+PacketMan includes controlled, reproducible `.pcap` files in `sample_pcaps/`. Judges can immediately evaluate the tool by selecting any scenario from the dropdown on the **Overview** page:
 
 | Sample PCAP | Scenario Demonstrated | Key Findings |
 |---|---|---|
@@ -135,7 +135,7 @@ NetSleuth includes controlled, reproducible `.pcap` files in `sample_pcaps/`. Ju
 
 ## 7. Running the Automated Test Suite
 
-NetSleuth comes with a comprehensive test suite (unit tests and integration tests executing real TShark parsing):
+PacketMan comes with a comprehensive test suite (unit tests and integration tests executing real TShark parsing):
 
 ```bash
 python -m pytest -v
@@ -150,7 +150,7 @@ Expected output:
 
 ## 8. Deployment Target (Streamlit Community Cloud)
 
-NetSleuth is fully prepared for one-click deployment to **Streamlit Community Cloud**:
+PacketMan is fully prepared for one-click deployment to **Streamlit Community Cloud**:
 - `packages.txt`: Specifies `tshark` so Streamlit Cloud's Debian runtime installs the system packet decoder.
 - `requirements.txt`: Pins all application dependencies.
 - Ingestion limits: 50 MB bounded safety budget to prevent out-of-memory container eviction.
@@ -160,6 +160,6 @@ NetSleuth is fully prepared for one-click deployment to **Streamlit Community Cl
 ## 9. Security, Privacy & Responsible Use
 
 1. **Untrusted Input Handling:** Uploaded filenames are sanitized; files are stored using random UUID paths in temporary directories and guaranteed deleted in `finally` blocks.
-2. **Data Minimization:** NetSleuth extracts protocol metadata only; raw packet payload content is not stored or displayed by default.
+2. **Data Minimization:** PacketMan extracts protocol metadata only; raw packet payload content is not stored or displayed by default.
 3. **No External Leakage:** Captures are analyzed 100% locally on the host server; no packet data is transmitted to third-party APIs.
 4. **Responsible Disclosure:** All sample packet captures are synthetically generated from simulated lab environments with no sensitive personal or corporate data.

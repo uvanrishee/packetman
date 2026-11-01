@@ -1,5 +1,5 @@
 """
-Synthetic PCAP Generator for NetSleuth.
+Synthetic PCAP Generator for PacketMan.
 Generates controlled, reproducible .pcap files demonstrating each diagnostic scenario.
 Uses Scapy to construct clean Ethernet, IP, TCP, UDP, DNS, ARP, and DHCP packets.
 """

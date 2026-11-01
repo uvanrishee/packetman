@@ -1,5 +1,5 @@
 """
-Core data contracts and shared models for NetSleuth.
+Core data contracts and shared models for PacketMan.
 All layers communicate via these strongly typed, normalized records.
 """
 

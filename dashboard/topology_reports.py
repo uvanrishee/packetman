@@ -260,7 +260,7 @@ def render_topology_reports_page() -> None:
 
         # Build Markdown report
         md_lines = [
-            "# NetSleuth Incident & Network Diagnostic Report",
+            "# PacketMan Incident & Network Diagnostic Report",
             "",
             f"**Capture File:** `{res.filename}`  ",
             f"**File Size:** `{res.file_size_bytes / 1024:.1f} KB`  ",
@@ -327,7 +327,7 @@ def render_topology_reports_page() -> None:
             st.download_button(
                 label="Download Structured Report (JSON)",
                 data=json.dumps(json_report, indent=2),
-                file_name=f"netsleuth_report_{res.filename}.json",
+                file_name=f"packetman_report_{res.filename}.json",
                 mime="application/json",
                 use_container_width=True,
             )
@@ -335,7 +335,7 @@ def render_topology_reports_page() -> None:
             st.download_button(
                 label="Download Executive Report (Markdown)",
                 data=md_report_text,
-                file_name=f"netsleuth_report_{res.filename}.md",
+                file_name=f"packetman_report_{res.filename}.md",
                 mime="text/markdown",
                 use_container_width=True,
             )

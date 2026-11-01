@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 class DetectorRegistry:
     """
-    Registry and runner for all NetSleuth detectors.
+    Registry and runner for all PacketMan detectors.
     """
 
     def __init__(self, config: AppConfig = DEFAULT_CONFIG) -> None:

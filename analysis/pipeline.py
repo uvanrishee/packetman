@@ -29,7 +29,7 @@ def run_pipeline(
     progress_callback: Callable[[float, str], None] | None = None
 ) -> AnalysisResult:
     """
-    Executes the complete NetSleuth analysis chain:
+    Executes the complete PacketMan analysis chain:
     PCAP -> Normalisation -> Flow/Host Aggregation -> Detectors -> Events -> Correlation.
     """
     display_name = original_filename or os.path.basename(file_path)

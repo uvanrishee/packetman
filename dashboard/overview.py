@@ -20,7 +20,7 @@ from dashboard.session import get_current_analysis, set_current_analysis
 
 
 def render_overview_page() -> None:
-    st.title("NetSleuth — Executive Overview")
+    st.title("PacketMan — Executive Overview")
     st.caption("Network Diagnosis & Incident Intelligence from Packet Captures")
 
     # ── Ingestion Section ──────────────────────────────────────────────────────
@@ -118,13 +118,13 @@ def render_overview_page() -> None:
     if crit_high:
         st.error(
             f"**ASSESSMENT: Suspicious Activity / Severe Faults Observed**  \n"
-            f"NetSleuth identified {len(crit_high)} high-priority finding(s) and "
+            f"PacketMan identified {len(crit_high)} high-priority finding(s) and "
             f"{len(res.incidents)} correlated incident(s) requiring immediate investigation."
         )
     elif med:
         st.warning(
             f"**ASSESSMENT: Needs Investigation**  \n"
-            f"NetSleuth detected {len(med)} network anomaly/anomalies (e.g. resets, timeouts, "
+            f"PacketMan detected {len(med)} network anomaly/anomalies (e.g. resets, timeouts, "
             "or retransmissions). Recommended checks are detailed below."
         )
     else:

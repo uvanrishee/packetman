@@ -1,5 +1,5 @@
 """
-Confidence scoring engine for NetSleuth.
+Confidence scoring engine for PacketMan.
 Estimates heuristic evidence strength (0.0 to 1.0).
 Strictly decoupled from severity.
 """

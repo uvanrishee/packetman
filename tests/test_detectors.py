@@ -1,5 +1,5 @@
 """
-Unit and scenario tests for NetSleuth detectors.
+Unit and scenario tests for PacketMan detectors.
 """
 
 import pytest
